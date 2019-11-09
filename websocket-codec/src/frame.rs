@@ -2,7 +2,7 @@ use std::io::{self, Cursor};
 use std::ops::Range;
 use std::result;
 
-use byteorder::{BigEndian, NativeEndian, ReadBytesExt};
+use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use bytes::{BufMut, BytesMut};
 
 use crate::mask::Mask;
@@ -70,7 +70,7 @@ impl FrameHeader {
             let mask = if b & 0x80 == 0 {
                 None
             } else {
-                Some(try_eof!(c.read_u32::<NativeEndian>()).into())
+                Some(try_eof!(c.read_u32::<LittleEndian>()).into())
             };
 
             (mask, len)
@@ -118,17 +118,16 @@ impl FrameHeader {
 
         if self.len > 65535 {
             dst.put_u8(mask_bit | 127);
-            dst.put_u64_be(self.len as u64);
+            dst.put_u64(self.len as u64);
         } else if self.len > 125 {
             dst.put_u8(mask_bit | 126);
-            dst.put_u16_be(self.len as u16);
+            dst.put_u16(self.len as u16);
         } else {
             dst.put_u8(mask_bit | self.len as u8);
         }
 
         if let Some(mask) = self.mask {
-            #[allow(deprecated)]
-            dst.put_u32::<NativeEndian>(mask.into());
+            dst.put_u32_le(mask.into());
         }
     }
 }

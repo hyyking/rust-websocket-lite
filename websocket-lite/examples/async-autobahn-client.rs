@@ -5,8 +5,8 @@
 
 use std::io::{self, Write};
 
+use futures::{SinkExt, StreamExt};
 use structopt::StructOpt;
-use tokio::prelude::*;
 use url::Url;
 use websocket_lite::{ClientBuilder, Message, Opcode, Result};
 

@@ -44,13 +44,12 @@ async fn run() -> Result<()> {
 }
 
 fn main() {
-    let rt = tokio::runtime::Runtime::new().unwrap();
+    let mut rt = tokio::runtime::Runtime::new().unwrap();
 
-    rt.spawn(async {
+    rt.block_on(rt.spawn(async {
         run().await.unwrap_or_else(|e| {
             eprintln!("{}", e);
         })
-    });
-
-    rt.shutdown_on_idle();
+    }))
+    .unwrap()
 }

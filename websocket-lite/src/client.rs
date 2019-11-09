@@ -7,8 +7,8 @@ use std::str;
 use base64;
 use futures::StreamExt;
 use rand;
-use tokio_codec::{Decoder, Encoder, Framed};
-use tokio_io::{self, AsyncRead, AsyncWrite, AsyncWriteExt};
+use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
+use tokio_util::codec::{Decoder, Encoder, Framed};
 use url::{self, Url};
 use websocket_codec::UpgradeCodec;
 
@@ -117,9 +117,9 @@ impl ClientBuilder {
     ///
     /// `wss://...` URLs are not supported by this method. Use `async_connect` if you need to be able to handle
     /// both `ws://...` and `wss://...` URLs.
-    pub async fn async_connect_insecure(self) -> Result<AsyncClient<tokio_net::tcp::TcpStream>> {
+    pub async fn async_connect_insecure(self) -> Result<AsyncClient<tokio::net::TcpStream>> {
         let addr = resolve(&self.url)?;
-        let stream = tokio_net::tcp::TcpStream::connect(&addr).await?;
+        let stream = tokio::net::TcpStream::connect(&addr).await?;
         Ok(self.async_connect_on(stream).await?)
     }
 
@@ -138,7 +138,7 @@ impl ClientBuilder {
         self,
     ) -> Result<AsyncClient<Box<dyn AsyncNetworkStream + Sync + Send + Unpin + 'static>>> {
         let addr = resolve(&self.url)?;
-        let stream = tokio_net::tcp::TcpStream::connect(&addr).await?;
+        let stream = tokio::net::TcpStream::connect(&addr).await?;
 
         let stream: Box<dyn AsyncNetworkStream + Sync + Send + Unpin + 'static> = if self.url.scheme() == "wss" {
             let domain = self.url.domain().unwrap_or("").to_owned();
@@ -176,7 +176,7 @@ impl ClientBuilder {
         let key = make_key(self.key, &mut key_base64);
         let upgrade_codec = UpgradeCodec::new(key);
         let request = build_request(&self.url, key);
-        AsyncWriteExt::write_all(&mut stream, request.as_bytes()).await?;
+        stream.write_all(request.as_bytes()).await?;
 
         let (opt, framed) = upgrade_codec.framed(stream).into_future().await;
         opt.ok_or_else(|| "no HTTP Upgrade response".to_owned())??;
@@ -209,8 +209,8 @@ mod tests {
     use std::task::{Context, Poll};
 
     use base64;
+    use tokio::io::{AsyncRead, AsyncWrite};
     use tokio::runtime::Runtime;
-    use tokio_io::{AsyncRead, AsyncWrite};
 
     use crate::ClientBuilder;
 
